@@ -1,0 +1,7 @@
+channel,total_spend,contribution,roas_recovered,roas_ground_truth,error_pct,lambda_chosen,lambda_ground_truth,alpha_chosen,alpha_ground_truth
+google_ads_spend,88437717.0,278978057.0,3.155,3.8,-17.0,0.4,0.4,0.8,0.7
+meta_ads_spend,58344619.0,211397409.0,3.623,4.5,-19.5,0.3,0.3,0.8,0.65
+youtube_spend,16599513.0,40393903.0,2.433,2.2,10.6,0.7,0.6,0.5,0.55
+amazon_ads_spend,20686738.0,151873061.0,7.342,5.8,26.6,0.1,0.2,0.5,0.75
+flipkart_ads_spend,15469275.0,78068148.0,5.047,5.2,-2.9,0.2,0.2,0.8,0.75
+offline_spend,7321917.0,8024130.0,1.096,1.6,-31.5,0.7,0.7,0.7,0.5

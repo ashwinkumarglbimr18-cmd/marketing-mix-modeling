@@ -1,0 +1,53 @@
+P8 - MMM MODEL DIAGNOSTICS
+Author: Ashwin Kumar - Performance Marketing Portfolio
+======================================================================
+
+MODEL FIT
+----------------------------------------------------------------------
+Observations (weeks)     : 104
+Predictors               : 14
+R-squared                : 0.9920
+Adjusted R-squared       : 0.9908
+
+CHOSEN HYPERPARAMETERS PER CHANNEL
+----------------------------------------------------------------------
+  channel                  lambda    alpha    gt_lambda   gt_alpha
+  google_ads_spend           0.40     0.80         0.40       0.70
+  meta_ads_spend             0.30     0.80         0.30       0.65
+  youtube_spend              0.70     0.50         0.60       0.55
+  amazon_ads_spend           0.10     0.50         0.20       0.75
+  flipkart_ads_spend         0.20     0.80         0.20       0.75
+  offline_spend              0.70     0.70         0.70       0.50
+
+RECOVERED VS GROUND-TRUTH ROAS
+----------------------------------------------------------------------
+  channel                         spend        contrib   ROAS_rec    ROAS_gt    err_%
+  google_ads_spend           88,437,717    278,978,057      3.155       3.80    -17.0
+  meta_ads_spend             58,344,619    211,397,409      3.623       4.50    -19.5
+  youtube_spend              16,599,513     40,393,903      2.433       2.20     10.6
+  amazon_ads_spend           20,686,738    151,873,061      7.342       5.80     26.6
+  flipkart_ads_spend         15,469,275     78,068,148      5.047       5.20     -2.9
+  offline_spend               7,321,917      8,024,130      1.096       1.60    -31.5
+
+BUDGET REALLOCATION (LAST 13 WEEKS)
+----------------------------------------------------------------------
+  channel                       current      optimised    delta %  marg_ROAS
+  google_ads_spend           13,622,461     11,120,174      -18.4      2.460
+  meta_ads_spend              7,222,254     10,037,327       39.0      2.933
+  youtube_spend               4,052,815      2,488,885      -38.6      0.947
+  amazon_ads_spend            2,847,223      3,785,581       33.0      3.536
+  flipkart_ads_spend          2,118,438      2,744,010       29.5      4.004
+  offline_spend               1,415,400      1,102,614      -22.1      0.888
+  TOTAL                      31,278,591     31,278,591
+
+PROJECTED QUARTERLY REVENUE
+----------------------------------------------------------------------
+  Current mix      : Rs      178,400,923
+  Optimised mix    : Rs      184,003,126
+  Uplift (INR)     : Rs        5,602,203
+  Uplift (%)       :             3.14 %
+
+TOP-LINE REALLOCATION RECOMMENDATION
+----------------------------------------------------------------------
+  Shift Rs 2,502,287 from google_ads_spend to meta_ads_spend
+  (reflects highest marginal ROAS shift within +/-40% bounds)

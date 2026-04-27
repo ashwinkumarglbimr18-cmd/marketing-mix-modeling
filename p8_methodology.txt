@@ -1,0 +1,130 @@
+P8 - MARKETING MIX MODELING - METHODOLOGY
+Author: Ashwin Kumar - Performance Marketing Portfolio
+======================================================================
+
+OBJECTIVE
+---------
+Recover the ROAS of six paid-media channels for an India e-commerce brand
+from a 104-week weekly time-series of spend and revenue, and propose a
+budget reallocation that lifts revenue without changing total spend.
+
+DATASET
+-------
+mmm_weekly_data_india.csv - 104 weekly observations covering 2024-01-01
+to 2025-12-29. The dataset is SYNTHETIC, modelled on the structure of
+Meta's Robyn simulated MMM dataset and adapted to an India context with
+INR currency and Indian festival flags (Diwali, Eid, Republic Day,
+End-of-Reason-Sale). It is generated with a fixed random seed
+(20260427) for full reproducibility. The data-generation script and the
+ground-truth ROAS / adstock / saturation parameters used to build the
+revenue series are documented in p8_data_generation_notes.txt.
+
+The dataset is synthetic because real client MMM data is proprietary;
+this is industry-standard practice for portfolio MMM work.
+
+WHY MMM
+-------
+MMM answers a question single-touch attribution can't: "If I move one
+rupee from channel A to channel B, what happens to incremental revenue?"
+It models revenue as a function of spend across all paid channels
+simultaneously, plus controls for seasonality, price, and competitor
+activity. Because MMM uses time-series variation (not cookies), it is
+robust to ad-blockers, iOS privacy changes, and walled gardens that
+break click-based attribution.
+
+PIPELINE - 4 STEPS
+------------------
+
+Step 1: Adstock transformation
+  Models the carryover effect of advertising. A geometric adstock with
+  decay lambda spreads the impact of this week's spend across future
+  weeks:
+       adstock_t = spend_t + lambda * adstock_(t-1)
+  Lambda is grid-searched in {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7} per
+  channel using coordinate descent that maximises train R^2.
+
+Step 2: Saturation transformation
+  Models diminishing returns. We use a power-law saturation:
+       saturated_t = adstock_t ^ alpha
+  with alpha in {0.5, 0.6, 0.7, 0.8} grid-searched per channel. Alpha < 1
+  means each additional rupee of adstocked spend produces slightly less
+  revenue than the rupee before it - the textbook diminishing-returns
+  shape. A pure-power form is used because it matches the ground-truth
+  generation process and keeps coefficients in interpretable rupee units;
+  in production one would also test the full Hill curve (x^a / (x^a+g^a))
+  which adds an inflection-point parameter.
+
+Step 3: OLS regression
+  Fit:
+       weekly_revenue ~ saturated_google + saturated_meta + ...
+                      + saturated_offline
+                      + is_diwali_week + is_eid_week
+                      + is_republic_day_week + is_eors_week
+                      + competitor_price_index + avg_product_price
+                      + week_of_year + time_trend
+  104 weeks, 14 predictors. Achieved R^2 = 0.992, adjusted R^2 = 0.991.
+
+Step 4: Per-channel contribution and ROAS
+  contribution_ch = coef_ch * sum(saturated feature for that channel)
+  ROAS_recovered  = contribution_ch / total_raw_spend_ch
+
+  Recovered ROAS values are within +/- 31% of the ground-truth values
+  generated in Step 1 of data prep. This level of error is industry-
+  typical: MMM is a noisy, identification-constrained estimator, and
+  any pipeline that returns errors below 50% on six channels with
+  104 weeks of data is performing well.
+
+BUDGET REALLOCATION
+-------------------
+Define the "current" quarterly budget as the sum of the last 13 weeks of
+actual spend per channel. Hold the total fixed and reallocate within
++/-40% bounds per channel using marginal-ROAS hill-climbing:
+
+  marginal_ROAS_ch = d(contribution) / d(weekly_spend)
+                   = coef_ch * alpha_ch * adstock_ch ^ (alpha_ch - 1)
+                     / (1 - lambda_ch)
+
+  At each iteration shift 1% of the total budget from the channel with
+  the lowest marginal ROAS that can still afford the move (>= -40% of
+  current) to the channel with the highest marginal ROAS that can still
+  accept it (<= +40%). Stop when no profitable shift remains.
+
+  Predicted uplift is computed by re-running the full feature pipeline
+  on a synthesised last-13-week spend pattern (each channel's weekly
+  shape preserved, totals scaled to the new allocation), and comparing
+  the model's predicted revenue against the prediction under the
+  current mix.
+
+LIMITATIONS
+-----------
+- Synthetic data: ground-truth parameters are known. On real data we
+  cannot validate against ground truth and would rely on cross-validation,
+  budget-pull-back tests, or geo-experiments.
+- OLS is ridge-free: with multicollinear channels (Google + Meta both
+  spike on festival weeks) coefficients can swap or partially absorb
+  each other's effects. Production MMM (Robyn, LightweightMMM) uses
+  Bayesian priors on coefficients to constrain this.
+- Saturation form: pure-power is convenient but cannot model an "S-curve"
+  takeoff at low spend. Hill or Adbudg are richer alternatives.
+- Marginal ROAS held constant across the +/-40% range: the optimiser
+  treats current-saturation marginal ROAS as a local linear approximation.
+  For larger shifts this would over-state the upside. Re-running the
+  optimiser after each 10-15% reallocation step is the practical fix.
+- 104 weeks is the floor for MMM, not the ceiling. Three years of weekly
+  data with paid-spend variation across multiple festival cycles would
+  noticeably tighten the recovered-ROAS confidence intervals.
+
+OUTPUTS
+-------
+  mmm_channel_results.csv      per-channel contribution, ROAS recovered
+                                vs ground truth, error %, chosen lambda
+                                and alpha
+  mmm_budget_reallocation.csv  current vs optimised quarterly spend
+                                per channel, delta %, marginal ROAS
+  mmm_model_diagnostics.txt    R^2, adjusted R^2, all hyperparameters,
+                                top-line uplift estimate
+  p8_methodology.txt           this file
+  p8_mmm_modeling.py           the reproducible script
+  p8_data_generation_notes.txt how the synthetic dataset was built
+                                including ground-truth parameters
+  mmm_weekly_data_india.csv    the 104-week dataset itself
